@@ -20,6 +20,7 @@ WSWITCH.WeaponCache = {}
 WSWITCH.cv = {}
 WSWITCH.cv.stay = CreateConVar("ttt_weaponswitcher_stay", "0", FCVAR_ARCHIVE)
 WSWITCH.cv.fast = CreateConVar("ttt_weaponswitcher_fast", "0", FCVAR_ARCHIVE)
+WSWITCH.cv.display = CreateConVar("ttt_weaponswitcher_displayfast", "0", FVCAR_ARCHIVE)
 
 local delay = 0.075
 local showtime = 3
@@ -229,7 +230,7 @@ function WSWITCH:DoSelect(idx)
 
    if self.cv.fast:GetBool() then
       -- immediately confirm if fastswitch is on
-      self:ConfirmSelection()
+	  self:ConfirmSelection(self.cv.display:GetBool())
    end   
 end
 
@@ -287,8 +288,8 @@ function WSWITCH:Disable()
 end
 
 -- Switch to the currently selected weapon
-function WSWITCH:ConfirmSelection()
-   self:Disable()
+function WSWITCH:ConfirmSelection(noHide)
+   if not noHide then self:Disable() end
 
    for k, w in pairs(self.WeaponCache) do
       if k == self.Selected and IsValid(w) then
@@ -296,6 +297,11 @@ function WSWITCH:ConfirmSelection()
          return
       end
    end   
+end
+
+-- Allow for suppression of the attack command
+function WSWITCH:PreventAttack()
+   return self.Show and !self.cv.fast:GetBool()
 end
 
 function WSWITCH:Think()

@@ -71,6 +71,7 @@ local highlight_colors = {
 	health = Color(150, 0, 0, 250),
 }
 
+
 -- Modified RoundedBox
 local Tex_Corner8 = surface.GetTextureID( "gui/corner8" )
 local function RoundedMeter( bs, x, y, w, h, color)
@@ -90,6 +91,7 @@ local function RoundedMeter( bs, x, y, w, h, color)
    else
       surface.DrawRect( x + math.max(w-bs, bs), y, bs/2, h )
    end
+
 end
 
 ---- The bar painting is loosely based on:
@@ -132,7 +134,7 @@ local function GetAmmo(ply)
 end
 
 local function DrawBg(x, y, width, height, client)
-   -- Role area
+   -- Traitor area sizes
    local th = 40
    local tw = 170
 
@@ -149,7 +151,7 @@ local function DrawBg(x, y, width, height, client)
    local high = highlight_colors.innocent
    if GAMEMODE.round_state != ROUND_ACTIVE then
       col = bg_colors.noround
-	 high = highlight_colors.noround
+	  high = highlight_colors.noround
    elseif client:GetTraitor() then
       col = bg_colors.traitor
 	  high = highlight_colors.traitor
@@ -158,7 +160,7 @@ local function DrawBg(x, y, width, height, client)
 	  high = highlight_colors.detective
    end
 
-	-- Role bar
+   -- Role bar
    draw.RoundedBox(0, x + 10, y, tw + 10, th + 1, col)
    RoundedMeter( 0, x , y, 10, th + 1, high)
 end
@@ -167,8 +169,6 @@ local sf = surface
 local dr = draw
 
 local function ShadowedText(text, font, x, y, color, xalign, yalign)
-
-	-- Shadowed text function
   -- dr.SimpleText(text, font, x+2, y+2, COLOR_BLACK, xalign, yalign)
 
    dr.SimpleText(text, font, x, y, color, xalign, yalign)
@@ -231,7 +231,7 @@ local function SpecHUDPaint(client)
 
    -- Draw round/prep/post time remaining
    local text = util.SimpleTime(math.max(0, GetGlobalFloat("ttt_round_end", 0) - CurTime()), "%02i:%02i")
-   ShadowedText(text, "TimeLeft_ex", x + (width/8), time_y, COLOR_WHITE)
+   ShadowedText(text, "TimeLeft_ex", time_x + (width/8), time_y, COLOR_WHITE)
 
    local tgt = client:GetObserverTarget()
    if IsValid(tgt) and tgt:IsPlayer() then
@@ -258,24 +258,22 @@ local function InfoPaint(client)
    DrawBg(x, y, width, height, client)
 
    local bar_height = 40
-   local bar_width = width
+   local bar_width = width - (margin*2)
 
    -- Draw health
    local health = math.max(0, client:Health())
    local health_y = y + margin - 4
-
-	-- Health Bar
-   PaintBar(x + 10 , health_y, bar_width - 10 , bar_height, health_colors, health/100)
+   
+   -- Health Bar
+   PaintBar(x + 10 , health_y, width - 10 , bar_height, health_colors, health/100)
    -- Health bar highlight
    RoundedMeter( 0, x , health_y, 10, bar_height, highlight_colors.health)
 
-	-- Health number
-   ShadowedText(tostring(health), "HealthAmmo_ex", bar_width - 252, health_y + 7, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_LEFT)
+   ShadowedText(tostring(health), "HealthAmmo_ex", x + margin - 15, health_y + 7, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_LEFT)
 
    if ttt_health_label:GetBool() then
       local health_status = util.HealthToString(health)
-	  -- Health label
-      --draw.SimpleText(L[health_status], "TraitorState", x + margin*6, health_y + bar_height/2, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+      --draw.SimpleText(L[health_status], "TabLarge", x + margin*2, health_y + bar_height/2, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
    end
 
    -- Draw ammo
@@ -283,16 +281,15 @@ local function InfoPaint(client)
       local ammo_clip, ammo_max, ammo_inv = GetAmmo(client)
       if ammo_clip != -1 then
          local ammo_y = health_y + bar_height + margin
-		 
-		 -- Ammo bar
-         PaintBar(x + 10, ammo_y - margin, bar_width - 10, bar_height, ammo_colors, ammo_clip/ammo_max)
+         -- Ammo bar
+         PaintBar(x + 10, ammo_y - margin, width-10, bar_height, ammo_colors, ammo_clip/ammo_max)
 		 -- Ammo bar Highlight
 		 RoundedMeter( 0, x, ammo_y - margin, 10, bar_height, highlight_colors.ammo)
 		 
          local text = string.format("%i + %02i", ammo_clip, ammo_inv)
 	
-		-- Ammo number
-         ShadowedText(text, "HealthAmmo_ex", bar_width - 252, ammo_y - margin + 7, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_LEFT)
+		 -- Ammo number
+         ShadowedText(text, "HealthAmmo_ex", x + margin - 15, ammo_y - margin + 7, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_LEFT)
       end
    end
 
@@ -301,7 +298,7 @@ local function InfoPaint(client)
 
    local traitor_y = y - 10
    local text = nil
-    if round_state == ROUND_ACTIVE then
+   if round_state == ROUND_ACTIVE then
 		if (client.IsGhost and client:IsGhost()) then
 			text = "Spec DM"
 		else
@@ -311,8 +308,6 @@ local function InfoPaint(client)
         text = L[ roundstate_string[round_state] ] or text
     end
 
-
-	-- Role text
    ShadowedText(text, "TraitorState_ex", x + margin - 15, traitor_y, COLOR_WHITE, TEXT_ALIGN_LEFT)
 
    -- Draw round time
@@ -323,7 +318,7 @@ local function InfoPaint(client)
 
    local text
    local font = "TimeLeft_ex"
-   local color = COLOR_WHITE -- Haste color
+   local color = COLOR_WHITE
    local rx = x + margin + 170
    local ry = traitor_y + 3
 
@@ -358,15 +353,16 @@ local function InfoPaint(client)
       -- bog standard time when haste mode is off (or round not active)
       text = util.SimpleTime(math.max(0, endtime), "%02i:%02i")
    end
-	--bg_colors.background_haste 
+
+    --bg_colors.background_haste 
 	--RoundedMeter( bs, x, y, w, h, color)
 	RoundedMeter( 0, x + margin + 170, ry - 8, 100, 41, bg_colors.background_haste )
 	RoundedMeter( 0, x+ margin + 160, ry - 8, 10, 41, highlight_colors.haste)
-   ShadowedText(text, font, x + margin + 190, ry + 5, color)
+    ShadowedText(text, font, x + margin + 190, ry + 5, color)
 
-   if is_haste then
+    if is_haste then
       dr.SimpleText(L.hastemode, "HasteMode_ex", x + margin + 185, traitor_y - 8 + 5)
-   end
+    end
 
 end
 
@@ -374,28 +370,50 @@ end
 function GM:HUDPaint()
    local client = LocalPlayer()
 
-   hook.Call( "HUDDrawTargetID", GAMEMODE )
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTTargetID" ) then
+       hook.Call( "HUDDrawTargetID", GAMEMODE )
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTMStack" ) then
+       MSTACK:Draw(client)
+   end
 
-   MSTACK:Draw(client)
-
-    if (not client:Alive()) or (client:Team() == TEAM_SPEC and !(client.IsGhost and client:IsGhost())) then
-      SpecHUDPaint(client)
+   if (not client:Alive()) or client:Team() == TEAM_SPEC then
+      if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTSpecHUD" ) then
+          SpecHUDPaint(client)
+      end
 
       return
    end
 
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTRadar" ) then
+       RADAR:Draw(client)
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTTButton" ) then
+       TBHUD:Draw(client)
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTWSwitch" ) then
+       WSWITCH:Draw(client)
+   end
 
-   RADAR:Draw(client)
-   TBHUD:Draw(client)
-   WSWITCH:Draw(client)
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTVoice" ) then
+       VOICE.Draw(client)
+   end
+   
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTDisguise" ) then
+       DISGUISE.Draw(client)
+   end
 
-   VOICE.Draw(client)
-   DISGUISE.Draw(client)
-
-   hook.Call( "HUDDrawPickupHistory", GAMEMODE )
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTPickupHistory" ) then
+       hook.Call( "HUDDrawPickupHistory", GAMEMODE )
+   end
 
    -- Draw bottom left info panel
-   InfoPaint(client)
+   if hook.Call( "HUDShouldDraw", GAMEMODE, "TTTInfoPanel" ) then
+       InfoPaint(client)
+   end
 end
 
 -- Hide the standard HUD stuff
