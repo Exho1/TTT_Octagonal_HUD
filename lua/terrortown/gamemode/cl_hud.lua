@@ -220,7 +220,6 @@ local function SpecHUDPaint(client)
    -- move up a little on low resolutions to allow space for spectator hints
    if ScrW() < 1000 then round_y = round_y - 15 end
 
-   local time_x = x + 170
    local time_y = round_y + 4
 
    draw.RoundedBox(0, x, round_y, width/2, height, bg_colors.background_main)
@@ -231,7 +230,7 @@ local function SpecHUDPaint(client)
 
    -- Draw round/prep/post time remaining
    local text = util.SimpleTime(math.max(0, GetGlobalFloat("ttt_round_end", 0) - CurTime()), "%02i:%02i")
-   ShadowedText(text, "TimeLeft_ex", time_x + (width/8), time_y, COLOR_WHITE)
+   ShadowedText(text, "TimeLeft_ex", x + (width/8), time_y, COLOR_WHITE)
 
    local tgt = client:GetObserverTarget()
    if IsValid(tgt) and tgt:IsPlayer() then
