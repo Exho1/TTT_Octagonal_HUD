@@ -62,16 +62,25 @@ local col_dark = {
 local round = math.Round
 function WSWITCH:DrawBarBg(x, y, w, h, col)
 	local rx = round(x - 4)
-	local ry = round(y - (h / 2) - 4)
+	local ry = round(y - (h * 0.5) - 4)
 	local rw = round(w + 9)
 	local rh = round(h + 8)
 
 	local b = 0 --bordersize
-	local bh = b / 2
+	local bh = b * 0.5
 
-	local role = LocalPlayer():GetRole() or ROLE_INNOCENT
+	local c
 
-	local c = col.tip[role]
+	if not TTT2 then
+		local role = LocalPlayer():GetRole() or ROLE_INNOCENT
+		c = col.tip[role]
+	else
+		if col == col_dark then
+			c = (LocalPlayer():GetSubRoleData() and LocalPlayer():GetSubRoleData().dkcolor) or ROLE_INNOCENT
+		else
+			c = (LocalPlayer():GetSubRoleData() and LocalPlayer():GetSubRoleData().color) or ROLE_INNOCENT
+		end
+	end
 
 	-- Draw the colour tip
 	surface.SetTexture(barcorner)
@@ -92,7 +101,6 @@ function WSWITCH:DrawBarBg(x, y, w, h, col)
 	surface.DrawTexturedRectRotated(rx + rw - bh, ry + rh - bh, b, b, 180)
 	surface.DrawTexturedRectRotated(rx + rw - bh, ry + bh, b, b, 270)
 	surface.DrawRect(rx + rw - b, ry + b, b, rh - b * 2)
-
 end
 
 local TryTranslation = LANG.TryTranslation
