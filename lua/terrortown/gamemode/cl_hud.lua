@@ -61,7 +61,7 @@ local highlight_colors = {
 local Tex_Corner8 = surface.GetTextureID("gui/corner8")
 
 local function RoundedMeter(bs, x, y, w, h, color)
-	surface.SetDrawColor(color)
+	surface.SetDrawColor(clr(color))
 
 	surface.DrawRect(x + bs, y, w - bs * 2, h)
 	surface.DrawRect(x, y + bs, bs, h - bs * 2)
@@ -77,7 +77,6 @@ local function RoundedMeter(bs, x, y, w, h, color)
 	else
 		surface.DrawRect(x + math.max(w - bs, bs), y, bs * 0.5, h)
 	end
-
 end
 
 ---- The bar painting is loosely based on:
@@ -107,6 +106,13 @@ local roundstate_string = {
 	[ROUND_POST] = "round_post"
 }
 
+local margin = 30
+local smargin = 10
+local maxheight = 111
+local maxwidth = 330
+local hastewidth = 100
+local bgheight = 40
+
 -- Returns player's ammo information
 local function GetAmmo(ply)
 	local weap = ply:GetActiveWeapon()
@@ -123,8 +129,8 @@ end
 
 local function DrawBg(x, y, width, height, client)
 	-- Traitor area sizes
-	local th = 40
-	local tw = 170
+	local th = bgheight
+	local tw = width - hastewidth - smargin * 2 -- bgheight = team icon
 
 	-- Adjust for these
 	y = y - th + 25
@@ -137,6 +143,7 @@ local function DrawBg(x, y, width, height, client)
 	-- main border, traitor based
 	local col = bg_colors.innocent
 	local high = highlight_colors.innocent
+
 	if GAMEMODE.round_state ~= ROUND_ACTIVE then
 		col = bg_colors.noround
 		high = highlight_colors.noround
@@ -149,16 +156,14 @@ local function DrawBg(x, y, width, height, client)
 			high = highlight_colors.detective
 		end
 	else
-		local rd = client:GetSubRoleData()
-
-		col = rd.color
-		high = rd.bgcolor
+		col = hook.Run("TTT2ModifyRoleBGColor") or client:GetSubRoleData().color
+		high = hook.Run("TTT2ModifyRoleDKColor") or client:GetSubRoleData().dkcolor
 	end
 
 	-- Role bar
-	draw.RoundedBox(0, x + 10, y, tw + 10, th + 1, col)
+	draw.RoundedBox(0, x + smargin, y, tw, th + 1, col)
 
-	RoundedMeter(0, x, y, 10, th + 1, high)
+	RoundedMeter(0, x, y, smargin, th + 1, high)
 end
 
 --local sf = surface
@@ -169,8 +174,6 @@ local function ShadowedText(text, font, x, y, color, xalign, yalign)
 
 	dr.SimpleText(text, font, x, y, color, xalign, yalign)
 end
-
-local margin = 30
 
 -- Paint punch-o-meter
 local function PunchPaint(client)
@@ -209,26 +212,24 @@ local function SpecHUDPaint(client)
 
 	-- Draw round state
 	local x = margin
-	local height = 32
-	local width = 250
-	local round_y = ScrH() - height - margin
-
-	-- move up a little on low resolutions to allow space for spectator hints
-	if ScrW() < 1000 then round_y = round_y - 15 end
+	local height = bgheight
+	local width = maxwidth
+	local round_y = ScrH() - margin - height - smargin
 
 	local time_y = round_y + 4
 
 	draw.RoundedBox(0, x, round_y, width * 0.5, height, bg_colors.background_main)
 	draw.RoundedBox(0, x, round_y - height, width / 1.2, height, bg_colors.noround)
 
-	local text = L[ roundstate_string[GAMEMODE.round_state] ]
-	ShadowedText(text, "TraitorState_ex", x + 10, round_y - height, COLOR_WHITE)
+	local text = L[roundstate_string[GAMEMODE.round_state]]
+	ShadowedText(text, "TraitorState_ex", x + smargin, round_y - height + smargin * 0.5, COLOR_WHITE)
 
 	-- Draw round/prep/post time remaining
 	text = util.SimpleTime(math.max(0, GetGlobalFloat("ttt_round_end", 0) - CurTime()), "%02i:%02i")
-	ShadowedText(text, "TimeLeft_ex", x + (width / 8), time_y, COLOR_WHITE)
+	ShadowedText(text, "TimeLeft_ex", x + width / 8, time_y, COLOR_WHITE)
 
 	local tgt = client:GetObserverTarget()
+
 	if IsValid(tgt) and tgt:IsPlayer() then
 		ShadowedText(tgt:Nick(), "TimeLeft_ex", ScrW() * 0.5, margin, COLOR_WHITE, TEXT_ALIGN_CENTER)
 	elseif IsValid(tgt) and tgt:GetNWEntity("spec_owner", nil) == client then
@@ -238,20 +239,20 @@ local function SpecHUDPaint(client)
 	end
 end
 
---local ttt_health_label = CreateClientConVar("ttt_health_label", "0", true)
+CreateClientConVar("ttt_health_label", "0", true) -- local ttt_health_label
 
 local function InfoPaint(client)
 	local L = GetLang()
 
-	local width = 300
-	local height = 111
+	local width = maxwidth
+	local height = maxheight
 
 	local x = margin
 	local y = ScrH() - margin - height
 
 	DrawBg(x, y, width, height, client)
 
-	local bar_height = 40
+	local bar_height = bgheight
 	--local bar_width = width - (margin * 2)
 
 	-- Draw health
@@ -259,9 +260,10 @@ local function InfoPaint(client)
 	local health_y = y + margin - 4
 
 	-- Health Bar
-	PaintBar(x + 10, health_y, width - 10, bar_height, health_colors, health * 0.01)
+	PaintBar(x + smargin, health_y, width - smargin, bar_height, health_colors, health * 0.01)
+
 	-- Health bar highlight
-	RoundedMeter(0, x, health_y, 10, bar_height, highlight_colors.health)
+	RoundedMeter(0, x, health_y, smargin, bar_height, highlight_colors.health)
 
 	ShadowedText(tostring(health), "HealthAmmo_ex", x + margin - 15, health_y + 7, COLOR_WHITE, TEXT_ALIGN_LEFT, TEXT_ALIGN_LEFT)
 
@@ -277,10 +279,12 @@ local function InfoPaint(client)
 		local ammo_clip, ammo_max, ammo_inv = GetAmmo(client)
 		if ammo_clip ~= -1 then
 			local ammo_y = health_y + bar_height + margin
+
 			-- Ammo bar
-			PaintBar(x + 10, ammo_y - margin, width - 10, bar_height, ammo_colors, ammo_clip / ammo_max)
+			PaintBar(x + smargin, ammo_y - margin, width - smargin, bar_height, ammo_colors, ammo_clip / ammo_max)
+
 			-- Ammo bar Highlight
-			RoundedMeter(0, x, ammo_y - margin, 10, bar_height, highlight_colors.ammo)
+			RoundedMeter(0, x, ammo_y - margin, smargin, bar_height, highlight_colors.ammo)
 
 			local text = string.format("%i + %02i", ammo_clip, ammo_inv)
 
@@ -292,11 +296,11 @@ local function InfoPaint(client)
 	-- Draw traitor state
 	local round_state = GAMEMODE.round_state
 
-	local traitor_y = y - 10
+	local traitor_y = y - smargin
 	local text
 
 	if round_state == ROUND_ACTIVE then
-		if (client.IsGhost and client:IsGhost()) then
+		if client.IsGhost and client:IsGhost() then
 			text = "Spec DM"
 		else
 			text = L[client:GetRoleStringRaw()] or text
@@ -307,17 +311,28 @@ local function InfoPaint(client)
 
 	ShadowedText(text, "TraitorState_ex", x + margin - 15, traitor_y, COLOR_WHITE, TEXT_ALIGN_LEFT)
 
+	-- Draw team icon
+	if TTT2 then
+		local team = client:GetTeam()
+
+		if team ~= TEAM_NONE and round_state == ROUND_ACTIVE then
+			local mat = Material(TEAMS[team].icon)
+
+			surface.SetDrawColor(255, 255, 255, 255)
+			surface.SetMaterial(mat)
+			surface.DrawTexturedRect(x + margin + width - hastewidth - bgheight - smargin * 3 - smargin, traitor_y - smargin * 0.5, bgheight, bgheight)
+		end
+	end
+
 	-- Draw round time
 	local is_haste = HasteMode() and round_state == ROUND_ACTIVE
 	local is_traitor = not TTT2 and client:IsActiveTraitor() or TTT2 and client:HasTeam(TEAM_TRAITOR)
-
 	local endtime = GetGlobalFloat("ttt_round_end", 0) - CurTime()
 
 	text = nil
 
 	local font = "TimeLeft_ex"
 	local color = COLOR_WHITE
-	local rx = x + margin + 170
 	local ry = traitor_y + 3
 
 	-- Time displays differently depending on whether haste mode is on,
@@ -332,7 +347,6 @@ local function InfoPaint(client)
 
 				-- need to hack the position a little because of the font switch
 				ry = ry + 5
-				rx = rx - 3
 			else
 				-- traitor and not blinking "overtime" right now, so standard endtime display
 				text = util.SimpleTime(math.max(0, endtime), "%02i:%02i")
@@ -356,14 +370,13 @@ local function InfoPaint(client)
 
 	--bg_colors.background_haste
 	--RoundedMeter( bs, x, y, w, h, color)
-	RoundedMeter(0, x + margin + 170, ry - 8, 100, 41, bg_colors.background_haste)
-	RoundedMeter(0, x + margin + 160, ry - 8, 10, 41, highlight_colors.haste)
-	ShadowedText(text, font, x + margin + 190, ry + 5, color)
+	RoundedMeter(0, x + margin + width - hastewidth - margin, ry - 8, 100, 41, bg_colors.background_haste)
+	RoundedMeter(0, x + margin + width - hastewidth - margin - smargin, ry - 8, 10, 41, highlight_colors.haste)
+	ShadowedText(text, font, x + margin + width - hastewidth - smargin, ry + 5, color)
 
 	if is_haste then
-		dr.SimpleText(L.hastemode, "HasteMode_ex", x + margin + 185, traitor_y - 8 + 5)
+		dr.SimpleText(L.hastemode, "HasteMode_ex", x + margin + width - hastewidth - smargin * 1.5, traitor_y - 8 + 5)
 	end
-
 end
 
 -- Paints player status HUD element in the bottom left
@@ -417,9 +430,15 @@ function GM:HUDPaint()
 end
 
 -- Hide the standard HUD stuff
-local hud = {"CHudHealth", "CHudBattery", "CHudAmmo", "CHudSecondaryAmmo"}
+local hud = {
+	"CHudHealth",
+	"CHudBattery",
+	"CHudAmmo",
+	"CHudSecondaryAmmo"
+}
+
 function GM:HUDShouldDraw(name)
-	for k, v in pairs(hud) do
+	for _, v in pairs(hud) do
 		if name == v then
 			return false
 		end
