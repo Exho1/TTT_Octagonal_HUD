@@ -312,15 +312,16 @@ local function InfoPaint(client)
 	ShadowedText(text, "TraitorState_ex", x + margin - 15, traitor_y, COLOR_WHITE, TEXT_ALIGN_LEFT)
 
 	-- Draw team icon
-	if TTT2 then
+	if hudTeamicon:GetBool() then
 		local team = client:GetTeam()
 
-		if team ~= TEAM_NONE and round_state == ROUND_ACTIVE then
-			local mat = Material(TEAMS[team].icon)
+		if team ~= TEAM_NONE and round_state == ROUND_ACTIVE and not TEAMS[team].alone then
+			local t = TEAMS[team]
+			local icon = Material(t.icon)
 
-			surface.SetDrawColor(255, 255, 255, 255)
-			surface.SetMaterial(mat)
-			surface.DrawTexturedRect(x + margin + width - hastewidth - bgheight - smargin * 3 - smargin, traitor_y - smargin * 0.5, bgheight, bgheight)
+			if icon then
+				DrawHudIcon(x + margin + width - hastewidth - bgheight - smargin * 3 - smargin, traitor_y - smargin * 0.5, bgheight, bgheight, icon, t.color or Color(0, 0, 0, 255))
+			end
 		end
 	end
 
