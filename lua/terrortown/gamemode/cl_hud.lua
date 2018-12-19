@@ -11,6 +11,9 @@ local string = string
 local GetLang = LANG.GetUnsafeLanguageTable
 local interp = string.Interp
 
+local hudWidth = CreateClientConVar("ttt2_octa_hud_width", "0")
+local hudTeamicon = CreateClientConVar("ttt2_octa_hud_teamicon", "1")
+
 -- Fonts
 surface.CreateFont("TraitorState_ex", {font = "Octin Sports RG", size = 30, weight = 1000})
 surface.CreateFont("TimeLeft_ex", {font = "Octin Sports RG", size = 28, weight = 800})
@@ -109,7 +112,7 @@ local roundstate_string = {
 local margin = 30
 local smargin = 10
 local maxheight = 111
-local maxwidth = 330
+local maxwidth = hudWidth:GetInt() + 330
 local hastewidth = 100
 local bgheight = 40
 
@@ -130,7 +133,7 @@ end
 local function DrawBg(x, y, width, height, client)
 	-- Traitor area sizes
 	local th = bgheight
-	local tw = width - hastewidth - smargin * 2 -- bgheight = team icon
+	local tw = width - hastewidth - (hudTeamicon:GetBool() and bgheight or 0) - smargin * 2 -- bgheight = team icon
 
 	-- Adjust for these
 	y = y - th + 25
@@ -241,6 +244,23 @@ end
 
 CreateClientConVar("ttt_health_label", "0", true) -- local ttt_health_label
 
+function DrawHudIcon(x, y, w, h, icon, color)
+	local base = Material("vgui/ttt/dynamic/base")
+	local base_overlay = Material("vgui/ttt/dynamic/base_overlay")
+
+	surface.SetDrawColor(color.r, color.g, color.b, color.a)
+	surface.SetMaterial(base)
+	surface.DrawTexturedRect(x, y, w, h)
+
+	surface.SetDrawColor(color.r, color.g, color.b, color.a)
+	surface.SetMaterial(base_overlay)
+	surface.DrawTexturedRect(x, y, w, h)
+
+	surface.SetDrawColor(255, 255, 255, 255)
+	surface.SetMaterial(icon)
+	surface.DrawTexturedRect(x, y, w, h)
+end
+
 local function InfoPaint(client)
 	local L = GetLang()
 
@@ -309,7 +329,7 @@ local function InfoPaint(client)
 		text = L[roundstate_string[round_state]] or text
 	end
 
-	ShadowedText(text, "TraitorState_ex", x + margin - 15, traitor_y, COLOR_WHITE, TEXT_ALIGN_LEFT)
+	ShadowedText(text, "TraitorState_ex", (x + margin + width - hastewidth - (hudTeamicon:GetBool() and bgheight or 0) - smargin) * 0.5, traitor_y, COLOR_WHITE, TEXT_ALIGN_CENTER)
 
 	-- Draw team icon
 	if hudTeamicon:GetBool() then
@@ -320,7 +340,7 @@ local function InfoPaint(client)
 			local icon = Material(t.icon)
 
 			if icon then
-				DrawHudIcon(x + margin + width - hastewidth - bgheight - smargin * 3 - smargin, traitor_y - smargin * 0.5, bgheight, bgheight, icon, t.color or Color(0, 0, 0, 255))
+				DrawHudIcon(x + margin + width - hastewidth - (hudTeamicon:GetBool() and bgheight or 0) - smargin * 4, traitor_y - smargin * 0.5, bgheight, bgheight, icon, t.color or Color(0, 0, 0, 255))
 			end
 		end
 	end
@@ -373,7 +393,7 @@ local function InfoPaint(client)
 	--RoundedMeter( bs, x, y, w, h, color)
 	RoundedMeter(0, x + margin + width - hastewidth - margin, ry - 8, 100, 41, bg_colors.background_haste)
 	RoundedMeter(0, x + margin + width - hastewidth - margin - smargin, ry - 8, 10, 41, highlight_colors.haste)
-	ShadowedText(text, font, x + margin + width - hastewidth - smargin, ry + 5, color)
+	ShadowedText(text, font, x + margin + width - hastewidth - smargin * 1.5, ry + 5, color)
 
 	if is_haste then
 		dr.SimpleText(L.hastemode, "HasteMode_ex", x + margin + width - hastewidth - smargin * 1.5, traitor_y - 8 + 5)
@@ -447,3 +467,35 @@ function GM:HUDShouldDraw(name)
 
 	return true
 end
+
+hook.Add("TTTSettingsTabs", "TTT2OctaHudSettings", function(dtabs)
+	local settings_panel = vgui.Create("DPanelList", dtabs)
+	settings_panel:StretchToParent(0, 0, dtabs:GetPadding() * 2, 0)
+	settings_panel:EnableVerticalScrollbar(true)
+	settings_panel:SetPadding(10)
+	settings_panel:SetSpacing(10)
+	dtabs:AddSheet("HUD Settings", settings_panel, "icon16/user_red.png", false, false, "The HUD settings")
+
+	local list = vgui.Create("DIconLayout", settings_panel)
+	list:SetSpaceX(5)
+	list:SetSpaceY(5)
+	list:Dock(FILL)
+	list:DockMargin(5, 5, 5, 5)
+	list:DockPadding(10, 10, 10, 10)
+
+	local settings_tab = vgui.Create("DForm")
+	settings_tab:SetSpacing(10)
+	settings_tab:SetName("HUD Position")
+	settings_tab:SetWide(settings_panel:GetWide() - 30)
+
+	settings_tab:NumSlider("HUD width", "ttt2_octa_hud_width", 0, ScrW(), 2)
+	settings_tab:CheckBox("Team icon", "ttt2_octa_hud_teamicon", 0, ScrW(), 2)
+
+	settings_panel:AddItem(settings_tab)
+
+	settings_tab:SizeToContents()
+end)
+
+cvars.AddChangeCallback(hudWidth:GetName(), function(name, old, new)
+	maxwidth = tonumber(new) + 330
+end)
