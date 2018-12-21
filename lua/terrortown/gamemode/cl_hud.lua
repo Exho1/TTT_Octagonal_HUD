@@ -245,16 +245,7 @@ end
 CreateClientConVar("ttt_health_label", "0", true) -- local ttt_health_label
 
 function DrawHudIcon(x, y, w, h, icon, color)
-	local base = Material("vgui/ttt/dynamic/base")
-	local base_overlay = Material("vgui/ttt/dynamic/base_overlay")
-
-	surface.SetDrawColor(color.r, color.g, color.b, color.a)
-	surface.SetMaterial(base)
-	surface.DrawTexturedRect(x, y, w, h)
-
-	surface.SetDrawColor(color.r, color.g, color.b, color.a)
-	surface.SetMaterial(base_overlay)
-	surface.DrawTexturedRect(x, y, w, h)
+	draw.RoundedBox(0, x, y, w, h + 1, color)
 
 	surface.SetDrawColor(255, 255, 255, 255)
 	surface.SetMaterial(icon)
@@ -340,7 +331,7 @@ local function InfoPaint(client)
 			local icon = Material(t.icon)
 
 			if icon then
-				DrawHudIcon(x + margin + width - hastewidth - (hudTeamicon:GetBool() and bgheight or 0) - smargin * 4, traitor_y - smargin * 0.5, bgheight, bgheight, icon, t.color or Color(0, 0, 0, 255))
+				DrawHudIcon(x + margin + width - hastewidth - (hudTeamicon:GetBool() and bgheight or 0) - smargin * 4, y - bgheight + 25, bgheight, bgheight, icon, t.color or Color(0, 0, 0, 255))
 			end
 		end
 	end
